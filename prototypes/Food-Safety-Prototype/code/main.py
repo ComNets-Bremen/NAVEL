@@ -1,9 +1,17 @@
-# Python script for wemos / esp8266 data logger
+# Python script of the Food Safety Prototype
+# to run on a ESP8266 based wemos board attaching
+# the following components,
 #
-# Jens Dede, University of Bremen, <jd@comnets.uni-bremen.de>
+# - Temperature sensor
+# - SD card sheield
+# - Battery shield
+# - 3 LED lights
+# - 1 button
+# 
+# author: Eenesh Chavan (eenesh@uni-bremen.de)
 #
-# TODO
-# - Add button handler from https://github.com/ComNets-Bremen/wemos-logger
+# based on the code by Jens Dede, University of Bremen, <jd@comnets.uni-bremen.de>
+#
 #
 
 """
