@@ -4,9 +4,9 @@ There are different microcontrollers used in the Internet of Things (IoT) to bui
 
 In this HOWTO, we explain developing programs for the ESP8266 using the MicroPython language. We use the **Wemos D1 board** as the base system when explaing the development process. To load programs to the **Wemos D1 board**, it must be connected to a computer over USB. The picture below shows a **Wemos D1 board** placed on a Breadboard connected to a computer ready for loading programs.
 
-<center>
+<p align="center">
     <img src="images/wemos-connected.jpg" alt="Wemos D1 Board" width="400"/>
-</center>
+</p>
 
 This HOWTO consist of the following sections. Click on the link to go to the relevant section or read from the begining.
 
@@ -50,9 +50,9 @@ Install Python 3 in your computer. There are many sources for installing Python.
 
 Some operating systems come pre-installed with Python. Run the following command in your computer to see if Python 3 is installed.
 
-<center>
+<p align="center">
 <img src="images/python-version-check.png" alt="Python Version" width="500"/>
-</center>
+</p>
 
 
 #### 2. Python Package Manager
@@ -63,9 +63,9 @@ Install the Python package manager `pip` in your computer. Check the following l
 
 To check whether `pip` is installed, run the following command.
 
-<center>
-<img src="images/pip-version-check.png" alt="Python Version" width="500"/>
-</center>
+<p align="center">
+    <img src="images/pip-version-check.png" alt="Python Version" width="500"/>
+</p>
 
 
 #### 3. Firmware Flashing Tool
@@ -76,9 +76,9 @@ Install the firmware flashing tool `esptool` in your computer. Check the followi
 
 Once installed, check if it works as seen below.
 
-<center>
-<img src="images/esp-tool-version-check.png" alt="Python Version" width="500"/>
-</center>
+<p align="center">
+    <img src="images/esp-tool-version-check.png" alt="Python Version" width="500"/>
+</p>
 
 
 #### 4. Node.js
@@ -89,9 +89,9 @@ Install the Node.js development environment in your computer. Check the followin
 
 Once installed, check on the command line if installed.
 
-<center>
-<img src="images/node-js-version-check.png" alt="Node.js Version" width="500"/>
-</center>
+<p align="center">
+    <img src="images/node-js-version-check.png" alt="Node.js Version" width="500"/>
+</p>
 
 
 
@@ -108,18 +108,18 @@ Once installed, check the applications area to see if `Visual Studio Code` is in
 
 The Pymaker extension in Visual Studio Code enables the uploading of Micropython code to the ESP8266. To install Pymakr, run `Visual Studio Code` and click on the `Extensions` icon on the `Activity Bar` (left of the screen). The picture below shows Pymakr installed.
 
-<center>
+<p align="center">
     <img src="images/vs-code-pymakr-install.png" alt="Pymakr Installed" width="200"/>
-</center>
+</p>
 
 
 #### 7. Connect ESP8266
 
 Connect the ESP8266 board to the computer where your development envoronment (above) was installed. Since most ESP8266 boards use Micro USB ports, they usually usually use Micro USB to USB A cables to connect the board to the computer. The picture below shows a `Wemos` board connected to a computer.
 
-<center>
+<p align="center">
     <img src="images/esp8266-usb-connections.jpg" alt="Wemos D1 Board" width="400"/>
-</center>
+</p>
 
 When connected, the ESP8266 board will bring up a device entry in the computer. In Microsoft Windows, this is a `COM` port such as `COM3` which can be seen on the `Device Manager`. On MacOS or Linux, this will be a `/dev` entry such as `/dev/tty.usbserial-1410`. 
 
@@ -130,15 +130,15 @@ Once the Pymakr extension is installed and the ESP8266 board is connected, it's 
 
 1. Click on the `All commands` button at the bottom of the Visual Studio Code editor (see picture below).
 
-<center>
+<p align="center">
     <img src="images/all-commands-bar.png" alt="Pymakr All commands bar" width="400"/>
-</center>
+</p>
 
 2. Type `Pymakr > Global Settings` and select it (see picture below).
 
-<center>
+<p align="center">
     <img src="images/select-global-settings.png" alt="Pymakr Global Settings" width="400"/>
-</center>
+</p>
 
 3. Selecting `Global Settings` will open the `pymakr.json` file with all the settings of Pymakr. You are required to set the `address` and `auto_connect` variables to configure the port related information. In the example below, the port is set in a computer running MacOS. Details about the port name is given in [7. Connect ESP8266](#7-connect-esp8266).
 
@@ -154,9 +154,9 @@ Once the Pymakr extension is installed and the ESP8266 board is connected, it's 
 
 If the ESP8266 has been idenified by the Pymakr extension, then the following prompt should appear in the `TERMINAL` area of Visual Studio Code.
 
-<center>
+<p align="center">
     <img src="images/connected-to-esp8266.png" alt="Pymakr Terminal after connected" width="400"/>
-</center>
+</p>
 
 The prompt you see is of a Micropython console. Type the following Micropython statement and check the output. The code will be executed in the ESP8266 microcontroller itself.
 
@@ -180,9 +180,9 @@ There are different Micropython firmware versions for different micro-controller
 
 For the `Wemos`, we use one of the firmwares shown in the picture below.
 
-<center>
-<img src="images/esp8266-firmware-versions.png" alt="Pymakr Installed" width="300"/>
-</center>
+<p align="center">
+    <img src="images/esp8266-firmware-versions.png" alt="Pymakr Installed" width="400"/>
+</p>
 
 The firmware file is a `.bin` file which for example, may look like `esp8266-20210618-v1.16.bin`.
 
@@ -227,7 +227,7 @@ The `boot.py` is run first when the microcontroller boots and is used to include
 
 #### 3. Write Program Code
 
-The built-in LED os the ESP8266 board is connected to the GPIO pin number 2. We use the `Pin` class in the `machine` libraray of Micropython to control the built-in LED. The program below loops 10 times, each time lighting or switching off the LED. This makes the LED to appear as blinking. This program is coded in the `main.py` file. We leave the `boot.py` empty and 
+The built-in LED os the ESP8266 board is connected to the GPIO pin number 2. We use the `Pin` class in the `machine` libraray of Micropython to control the built-in LED. The program below loops 10 times, each time lighting or switching off the LED. This makes the LED to appear as blinking. This program is coded in the `main.py` file. We leave the `boot.py` empty. 
 
 ```Python
 # import required libraries
@@ -253,9 +253,9 @@ The `led.value(not led.value())` statement switches LED on/off based on the curr
 
 When writing code, there is always the possibility of making mistakes. Visal Studio Code shows whatever errors it can identify as errors. The picture below shows the program code with 2 errors (red arrows). 
 
-<center>
+<p align="center">
     <img src="images/syntax-errors.png" alt="Wemos D1 Board" width="600"/>
-</center>
+</p>
 
 If the mouse cursor is hovered above the error, Visual Studio Code will provide information about the error. The second error shown is a Micropython syntax error. The right keyword is `range`. In the first error, Visual Studio Code is complaining that the `machine` library is unknown. Visual Studio Code has only information about standard Python and its libraries, but is unaware of libraries of Micropython. Therefore, this error can be safely disregarded.
 
@@ -264,9 +264,9 @@ If the mouse cursor is hovered above the error, Visual Studio Code will provide 
 
 Once the program is written, press the `Upload` button to load the program to the ESP8266. This action will not only load, but also start running the program. 
 
-<center>
+<p align="center">
     <img src="images/upload-from-bar.png" alt="Pymakr upload button in bar" width="400"/>
-</center>
+</p>
 
 
 -----
@@ -282,9 +282,57 @@ Once the program is written, press the `Upload` button to load the program to th
 
 The ESP8266 board can be attached a Micro SD card to store aand read files. The picture below shows a Micro SD card sheild mounted on the ESP8266. 
 
-<center>
+<p align="center">
     <img src="images/sdcard-shield.jpg" alt="SD Card Shield" width="400"/>
-</center>
+</p>
+
+To use the SD card shield, a library must be used. This library has many functions related to reading, writing, formatting, etc. of the SD card. The procedure is as follows.
+
+1. Use `Open Folder` or `Open` in Visual Studio Code to create folder, call it `sdcardcheck`
+
+2. Downlod the source file (i.e., library) containing the SD card manipulation code from [SD Card Manipulation Library](res/sdcard.py)
+
+3. The file structure should look like as follows.
+
+```
++-- boot.py
++-- main.py
++-- lib
+    +-- sdcard.py
+```
+
+4. Use the following program as the `main.py`
+
+```Python
+# import required libraries
+import machine
+import lib.sdcard
+import os
+
+# get reference to the SD card
+sd = lib.sdcard.SDCard(machine.SPI(1), machine.Pin(15))
+
+# mount SD card as a file system
+os.mount(sd, '/sd')
+
+# make a file name
+filename = '/sd/testfile.txt'
+
+# open file in append mode and write some text to a file
+with open(filename, 'a') as fp:
+    fp.write('Hello SD card \n')
+
+# open file and read
+with open(filename, 'r') as fp:
+    print(fp.read())
+```
+
+5. Load the program as described previously
+
+The `lib.sdcard.SDCard(machine.SPI(1), machine.Pin(15))` initializes and obtains a reference to the SD card to use for reading and writing to the SD card. The `os.mount(sd, '/sd')` command mounts that SD card as a volume at `/sd` folder. The rest of the program writes (`fp.write()`) a text string to a file and reads (`fp.read()`)what was written.
+
+
+
 
 
 -----
