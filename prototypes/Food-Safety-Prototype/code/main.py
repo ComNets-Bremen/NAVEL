@@ -60,8 +60,6 @@ network.WLAN(network.AP_IF).active(False)
 
 # setup constants
 DEBUG = False # keep True to check functioning of code
-DEEPSLEEP = False # deep sleep to save power consumption, doesn't maintain GPIO state
-LIGHTSLEEP = True # light sleep mode, maintains GPIO state
 
 # pin connection
 button = machine.Pin(0, machine.Pin.IN)
@@ -220,7 +218,7 @@ while True:
         if DEBUG:
             print("I woke up")
         
-        # blibk green
+        # blink green
         led_green.value(1)
         time.sleep(0.1)
         led_green.value(0)
@@ -263,10 +261,3 @@ while True:
             new_fileid = new_fileid + 1
             filename = "/sd/" + DATA_FILENAME + str(new_fileid)
             create_empty_file(filename)
-
-            
-        
-        
-
-
-

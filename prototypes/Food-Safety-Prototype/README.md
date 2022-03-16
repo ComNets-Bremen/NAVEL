@@ -64,7 +64,7 @@ The components attached to these sheilds are as follows.
 The picture below shows the prototype opened up.
 
 <p align="center">
-    <img src="images/prototype-guts.jpg" alt="Prototype from side" width="400"/>
+    <img src="images/prototype-guts.jpg" alt="Prototype guts" width="500"/>
 </p>
 <p align="center">
     <em>The prototype open showing all components and connections</em>
@@ -95,5 +95,46 @@ The following table lists the pin assignments of the prototype.
 
 ## Code
 
+The code of the program consist of a number of parts combining the following activities.
 
+- Reading temperature sensor
+- Averaging temperature values to check whether threshold exceeded
+- Handling button presses (long press or short press) through an interrupt handler
+- Writing to SD card
+- Setting up web server with the logged data
+
+The following sections show and describe the code related to the above activities.
+
+#### Reading temperature sensor
+
+
+
+
+```Python
+
+# Enable one wire temerature sensor
+ow = onewire.OneWire(machine.Pin(2))
+ow.scan()                # return a list of devices on the bus
+ow.reset()               # reset the bus
+ds = ds18x20.DS18X20(ow) # get handle
+
+# read temperature value from sensor
+def read_sensors():
+    temp = 0
+    roms = ds.scan()
+    ds.convert_temp()
+    time.sleep_ms(750)
+    res = {}
+    for rom in roms:
+        temp = ds.read_temp(rom)
+        res[ubinascii.hexlify(rom)] = temp
+    res["time"] = str(time.time())
+    return res, temp
+
+# read temperature from sensor
+data = {}
+data["id"] = esp.flash_id()
+data["data"], temp = read_sensors()
+
+```
 
