@@ -1,6 +1,10 @@
 # Food Safety Prototype
 
-The Food Safety Prototype demonstrates how the resources available at the FAB Lab can be used to develop a solution for a specific use case. The use case relates to transporting meat or milk safely in Cameroon. This section provides details of the scenario, the hardware used and the code of the protype.
+The Food Safety Prototype demonstrates how the resources available at the FAB Lab can be used to develop a solution for a specific use case. The use case relates to transporting meat or milk safely in Cameroon. This README provides details of the scenario, the hardware used and the code of the protype. The following locations have furrther details.
+
+- [Design](./design/) - Contains the flow charts of the prograsm logic, pin assignments, etc.
+- [Program code](./code/) - Contains the program code of the prototype
+
 
 
 ## Scenario
@@ -17,15 +21,17 @@ The picture below shows the protoype. It consist of the following components.
 
 <p align="center">
     <img src="images/prototype-top.jpg" alt="Prototype from top" width="400"/>
+</p>
+<p align="center">
     <em>The protype from the top with its temperature sensor against the backdrop of a CR2032 coin battery</em>
 </p>
 
 <p align="center">
     <img src="images/prototype-side.jpg" alt="Prototype from side" width="400"/>
+</p>
+<p align="center">
     <em>The protype from the side where the button and the 3 LEDs are visible</em>
 </p>
-
-
 
 The operation of the prototype is described by the following setences.
 
@@ -38,11 +44,52 @@ The operation of the prototype is described by the following setences.
 - A short press would reset the prototype to make it ready for its next use again.
 
 
-
-
-
-
 ## Hardware
+
+The prototype is based on the `Wemos D1 ESP8266` board placed together with other shields. The list of shields used are as follows.
+
+- Wemos D1 ESP8266 shield
+- SD card shield
+- Battery shield
+- Port explansion shield
+
+The components attached to these sheilds are as follows.
+
+- 3 LEDs (red green and blue)
+- DS18S20 one-wire temperature sensor
+- Push button
+- 3.7V 2600mAh rechargeable battery
+- Cables connecting the ports and the components
+
+The picture below shows the prototype opened up.
+
+<p align="center">
+    <img src="images/prototype-guts.jpg" alt="Prototype from side" width="400"/>
+</p>
+<p align="center">
+    <em>The prototype open showing all components and connections</em>
+</p>
+
+The following table lists the pin assignments of the prototype.
+
+| Pin on Board   | Pin on ESP8266  | Details                                            |
+|----------------|-----------------|----------------------------------------------------|
+| TX             | TXD             | TXD (don't use)                                    |
+| RX             | RXD             | RXD (don't use)                                    |
+| A0             | A0              | Analog input, max 3.2V, not used                   |
+| D0             | GPIO16          | Connected to RST                                   |
+| D1             | GPIO5           | Green LED                                          |
+| D2             | GPIO4           | Red LED                                            |
+| D3             | GPIO0           | Button -> GND (Pullup)                             |
+| D4             | GPIO2           | IO, 10k Pull-up built-in LED, OneWire sensor Data  |
+| D5             | GPIO14          | CLK SDcard                                         |
+| D6             | GPIO12          | MISO SDcard                                        |
+| D7             | GPIO13          | MOSI SDcard                                        |
+| D8             | GPIO15          | SS SDcard                                          |
+| G              | GND             | Ground                                             |
+| 5V             | 5V              | not available                                      |
+| 3V3            | 3.3V            | 3.3V connection                                    |
+| RST            | RST             | Reset                                              |
 
 
 

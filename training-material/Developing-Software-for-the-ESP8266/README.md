@@ -16,10 +16,6 @@ This HOWTO consist of the following sections. Click on the link to go to the rel
 4. [Developing and Loading a Simple Program](#developing-and-loading-a-simple-program) - Describes a how a simple program is programmed, including structure of the structure expected by the ESP8266 and how the developed program is loded
 5. [Program to Read from a Temperature Sensor](#program-to-read-from-a-temperature-sensor) - Describes how a simple program that reads values from a temperature sensor connected to a ESP8266 is written and loaded
 6. [Program to Write and Read an SD Card](#program-to-write-and-read-an-sd-card) - Describes how an SD card is used in an ESP8266
-7. [Program to Enable a WLAN Access Point](#program-to-enable-a-wlan-access-point) - Describes how a the WLAN access point is brought up in ESP8266
-8. [Program to Enable the Web Server](#program-to-enable-the-web-server) - Describes how the web server in the ESP8266 is brought up programatically
-
-9. [Program to Make Files in SD Card Visible on Web Pages](#program-to-make-files-in-sd-card-visible-on-web-pages) - Describes how to program the web pages that can be used to download the contents of the web pages
 
 
 -----
@@ -330,29 +326,3 @@ with open(filename, 'r') as fp:
 5. Load the program as described previously
 
 The `lib.sdcard.SDCard(machine.SPI(1), machine.Pin(15))` initializes and obtains a reference to the SD card to use for reading and writing to the SD card. The `os.mount(sd, '/sd')` command mounts that SD card as a volume at `/sd` folder. The rest of the program writes (`fp.write()`) a text string to a file and reads (`fp.read()`)what was written.
-
-
-
-
-
------
-
-## Program to Enable a WLAN Access Point
-
-
-
------
-
-## Program to Enable the Web Server
-
-
-
-
------
-
-## Program to Make Files in SD Card Visible on Web Pages
-
-
-
-
-
