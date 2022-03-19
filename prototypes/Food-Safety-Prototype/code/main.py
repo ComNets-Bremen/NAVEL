@@ -42,38 +42,26 @@ G 	Ground 	GND
 RST 	Reset 	RST
 """
 
+# import all required libraries
 import machine
 import time
-import onewire
-import ds18x20
 import os
 import network
+import esp
+import onewire
+import ds18x20
 import lib.sdcard
 import ujson as json
 import ubinascii
-import esp
-from lib.webserver import SimpleWebserver
-
-# Disable communication first to further reduce energy consumption
-network.WLAN(network.STA_IF).active(False)
-network.WLAN(network.AP_IF).active(False)
+import select
+import socket
+import gc
+gc.collect()
 
 # setup constants
-DEBUG = False # keep True to check functioning of code
-
-# pin connection
-button = machine.Pin(0, machine.Pin.IN)
-led_red = machine.Pin(4, machine.Pin.OUT)
-led_green = machine.Pin(5, machine.Pin.OUT)
-led = machine.Pin(2, machine.Pin.OUT) # built-in LED
-
-# start indication
-for i in range(6):
-    led_red.value(not led_red.value())
-    led_green.value(not led_red.value())
-    time.sleep(0.3)
-led_red.value(0)
-led_green.value(0)
+DEBUG = True # keep True to check functioning of code
+FAST_BLINK_DURATION_SEC = 0.1 # duration to light LED for fast blinking
+SLOW_BLINK_DURATION_SEC = 0.5 # duration to light LED for slow blinking
 
 # storage stuff
 DATA_FILENAME = "DATA_" # set file name
@@ -82,7 +70,7 @@ DATA_MAX_FILE_SIZE = 1*1000*1000 # 1M
 # thresholds
 SLEEP_INTERVAL_SEC = 10 # interval in secs for reading temperature
 TEMP_AVG_FREQ = 8       # frequency of averaging temerature and logging
-TEMP_EXCEED_LIMIT = 25  # temperate threshold (degrees) to indicate red LED 
+TEMP_EXCEED_LIMIT = 24  # temperate threshold (degrees celcius) to indicate red LED 
 
 # log temperature value
 def store_data(filename, data):
@@ -111,7 +99,7 @@ def read_sensors():
     for rom in roms:
         temp = ds.read_temp(rom)
         res[ubinascii.hexlify(rom)] = temp
-    res["time"] = str(time.time())
+    res['time'] = str(time.time())
     return res, temp
 
 def read_stored_data(path="/sd/", remove = False):
@@ -125,6 +113,26 @@ def read_stored_data(path="/sd/", remove = False):
             if remove:
                 os.remove(path+f)
 
+
+
+# Disable communication first to further reduce energy consumption
+network.WLAN(network.STA_IF).active(False)
+network.WLAN(network.AP_IF).active(False)
+
+# pin connection
+button = machine.Pin(0, machine.Pin.IN)
+led_red = machine.Pin(4, machine.Pin.OUT)
+led_green = machine.Pin(5, machine.Pin.OUT)
+led = machine.Pin(2, machine.Pin.OUT) # built-in LED
+
+# start indication
+for i in range(10):
+    led_red.value(not led_red.value())
+    led_green.value(not led_red.value())
+    time.sleep(SLOW_BLINK_DURATION_SEC)
+led_red.value(0)
+led_green.value(0)
+
 # Enable one wire temerature sensor
 ow = onewire.OneWire(machine.Pin(2))
 ow.scan()                # return a list of devices on the bus
@@ -136,25 +144,30 @@ sd = lib.sdcard.SDCard(machine.SPI(1), machine.Pin(15))
 os.mount(sd, '/sd')
 
 # number appended to log file name
-new_fileid = 0
+last_fileid = 0
 
 # find the last number of the last file name
 for fn in os.listdir('/sd'):
     try:
         if DEBUG:
             print("Found file:", fn)
-        new_fileid = max(new_fileid, int(fn.split("_")[1]))
+        last_fileid = max(last_fileid, int(fn.split("_")[1]))
     except:
         pass
 if DEBUG:
-    print("fileid", new_fileid)
+    print("fileid", last_fileid)
 
 # variable to keep track of current state
-# i.e., just booted or button pressed to start logging temp
-session = 0
+logstarted = False
+webstarted = False
+
+# socket details
+ssocket = None
+poll = None
+saddr = None
 
 def interrupt_handler(x):
-    global session, new_fileid
+    global logstarted, webstarted, last_fileid, ssocket, poll, saddr
 
     # count button press duration
     x = 0
@@ -163,22 +176,28 @@ def interrupt_handler(x):
         x = x + 1
     
     # check if short press, then log temperature
-    if 3 <= x <= 7:
+    if x >= 3 and x <= 7:
 
-        # increment system state variable
-        session =+ 1
+        # start temperature logging
+        logstarted = True
+
+        # init LEDs
+        led_green.value(0)
+        led_red.value(0)
 
         # blink green
         for i in range(6):
             led_green.value(not led_green.value())
-            time.sleep(0.5)
-        led_green.value(0)
+            time.sleep(SLOW_BLINK_DURATION_SEC)
+
+        if DEBUG:
+            print('starting temperature logging with new file')
 
         # create new log file and log first temperature
-        new_fileid = new_fileid + 1
-        filename = "/sd/" + DATA_FILENAME + str(new_fileid)
+        last_fileid += 1
+        filename = "/sd/" + DATA_FILENAME + str(last_fileid)
         if DEBUG:
-            print(new_fileid, filename)
+            print('new file name', filename)
         data = {}
         data["id"] = esp.flash_id()
         data["data"], temp = read_sensors()
@@ -187,18 +206,62 @@ def interrupt_handler(x):
         store_data(filename, data)
 
     # check if long press, then start web server
-    if 8 <= x <= 12:
+    if x >= 8:
 
         # blink red
-        for i in range(4):
+        for i in range(6):
             led_red.value(not led_red.value())
-            time.sleep(0.5)
+            time.sleep(SLOW_BLINK_DURATION_SEC)
         led_red.value(0)
 
-        # start web server
-        sws = SimpleWebserver()
-        sws.serve()
-    
+        # start or stop WLAN AP and web server
+        if not webstarted:
+
+            # say web server and AP is active now
+            webstarted = True
+            if DEBUG:
+                print('starting web server')
+
+            # bring up WLAN AP
+            ap = network.WLAN(network.AP_IF)
+            ap.active(True)
+            ap.config(password="navel2021")
+            while ap.active() == False:
+                pass
+            if DEBUG:
+                print(ap.ifconfig())
+
+            # set up web server om port 80
+            ssocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            saddr = socket.getaddrinfo('0.0.0.0', 80)[0][-1]
+            if DEBUG:
+                print('server:', saddr)
+            ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
+            ssocket.bind(saddr)
+            ssocket.listen(5)
+            ssocket.setblocking(False)
+
+            # setup polling based connections
+            poll = select.poll()
+            poll.register(ssocket, select.POLLIN)
+            time.sleep(2)
+
+        else:
+
+            # say web server and AP is not active any more
+            webstarted = False
+            if DEBUG:
+                print('stopping web server')
+
+            # unregister polling
+            poll.unregister(ssocket)
+
+            # close socket
+            ssocket.close()
+
+            # shutdown WLAN AP
+            ap = network.WLAN(network.AP_IF)
+            ap.active(False)
 
 # setup button handler (call function)
 button.irq(handler=interrupt_handler, trigger=machine.Pin.IRQ_FALLING)
@@ -206,27 +269,40 @@ button.irq(handler=interrupt_handler, trigger=machine.Pin.IRQ_FALLING)
 # ring buffer to keep temperature to average
 average_list = []
 
+# next temperature logging time
+next_logtime = time.time() + SLEEP_INTERVAL_SEC
+
 # start main loop of logging temperature
 while True:
     
-    # light sleep
-    machine.lightsleep(SLEEP_INTERVAL_SEC * 1000)
+    # set for light sleep - only if logging started but no web server active
+    if logstarted and not webstarted:
+        do_lightsleep = True
+    else:
+        do_lightsleep = False
 
-    # log only if at least once the short press is done
-    if session > 0:
+    # check and do light sleep
+    if do_lightsleep:
+        machine.lightsleep(SLEEP_INTERVAL_SEC * 1000)
+
+    # log temperature if started (with short press)
+    if logstarted and time.time() > next_logtime:
 
         if DEBUG:
             print("I woke up")
-        
+
         # blink green
         led_green.value(1)
-        time.sleep(0.1)
+        time.sleep(FAST_BLINK_DURATION_SEC)
         led_green.value(0)
 
         # read temperature from sensor
         data = {}
-        data["id"] = esp.flash_id()
-        data["data"], temp = read_sensors()
+        data['id'] = esp.flash_id()
+        data['data'], temp = read_sensors()
+
+        if DEBUG:
+            print('after read_sensors')
 
         # add to list
         average_list.append(temp)
@@ -241,23 +317,87 @@ while True:
             average = sum(average_list)/len(average_list)
             if DEBUG:
                 print('average:', average)
-            
+
             # init list
             average_list = []
 
             # check threshold to light red LED and log
             if average >= TEMP_EXCEED_LIMIT:
                 led_red.value(1)
-                data[('Threshold of ' + str() + ' degrees was crossed')]
-        
+                data['msg'] = ('Threshold of ' + str(TEMP_EXCEED_LIMIT) + ' degrees was crossed')
+
+            # release garbage
+            gc.collect()
+
         if DEBUG:
             print(data)
-        
+
         # log temperature data and check file size exceeded
-        filename = "/sd/" + DATA_FILENAME + str(new_fileid)
+        filename = "/sd/" + DATA_FILENAME + str(last_fileid)
         if not store_data(filename, data):
 
             # create new file for next log if size exceeded
-            new_fileid = new_fileid + 1
-            filename = "/sd/" + DATA_FILENAME + str(new_fileid)
+            last_fileid += 1
+            filename = "/sd/" + DATA_FILENAME + str(last_fileid)
             create_empty_file(filename)
+        
+        # setup for next temperature logging time
+        next_logtime = time.time() + SLEEP_INTERVAL_SEC
+
+    # serve web pages if web server up
+    if webstarted:
+
+        # wait for incoming connections
+        status = poll.poll(SLEEP_INTERVAL_SEC * 1000)
+
+        # server pages when there are connections
+        if status:
+            if DEBUG:
+                print('connection request on local address', saddr)
+            
+            # setup connection to requester
+            csocket, caddr = ssocket.accept()
+            csocket.setblocking(True)
+
+            # read user web request
+            csocketfile = csocket.makefile('rwb', 0)
+            if DEBUG:
+                print('received:', 'from', caddr, '\n')
+            while True:
+                line = csocketfile.readline()
+                if DEBUG:
+                    print(line)
+                if not line or line == b'\r\n':
+                    break
+            
+            # check request details decide what page to show
+            if True:
+                # show index page with files
+                if DEBUG:
+                    print('sending index page to', caddr, '\n')
+
+                # get first part of index page
+                pagepart = ''
+                with open('lib/index-part-1.html', 'r') as fp:
+                    pagepart = fp.read()
+                csocket.send(pagepart)
+
+                # get files part of index page
+                for name in os.listdir('/sd'):
+                    pagepart = ('<option value=\"' + name + '\">' + name + '</option>\n')
+                    csocket.send(pagepart)
+
+                # get last part of index page
+                with open('lib/index-part-2.html', 'r') as fp:
+                    pagepart = fp.read()
+                    csocket.send(pagepart)
+                
+                # wait a little
+                time.sleep(2)
+
+            # end session
+            csocket.close()
+
+            # release unwanted mem use
+            gc.collect()
+

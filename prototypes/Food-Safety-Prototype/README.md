@@ -33,7 +33,7 @@ The picture below shows the protoype. It consist of the following components.
     <em>The protype from the side where the button and the 3 LEDs are visible</em>
 </p>
 
-The operation of the prototype is described by the following setences.
+The operation of the prototype is described in the following text.
 
 - When the prototype boots up, the red LED will blink 3 times to indicate that it is ready for operation.
 - When the button is pressed for a short time, between 5 and 7 seconds, the prototype will start logging the temperature. This is also considered as a reset of the system.
