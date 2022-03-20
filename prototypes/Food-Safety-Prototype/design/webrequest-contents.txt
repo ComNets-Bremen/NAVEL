@@ -1,0 +1,23 @@
+
+b'GET / HTTP/1.1\r\n'
+b'Host: 192.168.4.1\r\n'
+b'Upgrade-Insecure-Requests: 1\r\n'
+b'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n'
+b'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Safari/605.1.15\r\n'
+b'Accept-Language: en-GB,en;q=0.9\r\n'
+b'Accept-Encoding: gzip, deflate\r\n'
+b'Connection: keep-alive\r\n'
+b'\r\n'
+
+
+
+b'GET /selection?filename=DATA_12 HTTP/1.1\r\n'
+b'Host: 192.168.4.1\r\n'
+b'Connection: keep-alive\r\n'
+b'Upgrade-Insecure-Requests: 1\r\n'
+b'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n'
+b'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Safari/605.1.15\r\n'
+b'Referer: http://192.168.4.1/selection?filename=DATA_7\r\n'
+b'Accept-Language: en-GB,en;q=0.9\r\n'
+b'Accept-Encoding: gzip, deflate\r\n'
+b'\r\n'
