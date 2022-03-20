@@ -105,6 +105,7 @@ The code of the program consist of a number of parts (listed below) that are inv
 - Setting up web server with the logged data
 - Sleeping to save energy
 - Serving web pages
+- Forcing memory usage cleanup (garbage collection)
 
 
 The following sections show and describe the code related to the above activities.
@@ -419,5 +420,18 @@ else:
             csocket.sendall(line)
     csocket.sendall(']')
 ```
+Once the web page requested is served, the socket connection must be closed.
 
+```Python
+# end session
+csocket.close()
+```
 
+#### Forcing memory usage cleanup
+
+The ESP8266 is limited in its resource availability and therefore, releasing unused resources such as memory is critical to its proper function. This is done by actively calling gabage collection.
+
+```Python
+# release unwanted mem use
+gc.collect()
+```
