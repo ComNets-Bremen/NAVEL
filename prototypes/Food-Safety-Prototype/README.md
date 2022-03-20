@@ -1,6 +1,6 @@
 # Food Safety Prototype
 
-The Food Safety Prototype demonstrates how the resources available at the FAB Lab can be used to develop a solution for a specific use case. The use case relates to transporting meat or milk safely in Cameroon. This README provides details of the scenario, the hardware used and the code of the protype. The following locations have furrther details.
+The Food Safety Prototype demonstrates how the resources available at the FAB Lab can be used to develop a solution for a specific use case. The use case relates to transporting meat or milk safely in Cameroon. This README provides the details of the scenario, the hardware used and the code of the prototype. The following locations have further details.
 
 - [Design](./design/) - Contains the flow charts of the prograsm logic, pin assignments, etc.
 - [Program code](./code/) - Contains the program code of the prototype
@@ -35,14 +35,13 @@ The picture below shows the protoype. It consist of the following components.
 
 The operation of the prototype is described in the following text.
 
-- When the prototype boots up, the red LED will blink 3 times to indicate that it is ready for operation.
-- When the button is pressed for a short time, between 5 and 7 seconds, the prototype will start logging the temperature. This is also considered as a reset of the system.
-- The temperature will be logged every 10 seconds and with a green blink of the LED.
-- When logging the temperature, if the average temperature from the last 8 readings exceeds a threshold, set to 7 degrees celcius, then the red LED will be lit permenently until a reset is done.
-- If a long button press is performed, a press between 10 and 15 seconds, the a WLAN access point and a web server is brout up by the protype.
-- The user can connect to this WLAN AP and browse the web server to download data.
-- A short press would reset the prototype to make it ready for its next use again.
-
+- When the prototype boots up, the red and green LEDs will blink sequentially 3 times to indicate that it is ready for operation.
+- When the button is pressed for a short time, between 3 and 7 seconds, the prototype will start logging the temperature. 
+- The temperature will be logged every 10 seconds together with a green blink of the LED.
+- When logging the temperature, if the average temperature from the last 8 readings exceeds a threshold (set to 7 degrees celcius), then the red LED will be lit permenently until a reset is done.
+- If a long button press is performed, a press above 8 seconds, the a WLAN access point and a web server is brout up by the protype.
+- The user can connect to this WLAN AP and use a web browser to browse and download data.
+- A the same short press above, if done while the temperature is being logged, results in clearing the threshold exceed indicator (red LED) and starting a new round of temperature logging.
 
 ## Hardware
 
@@ -95,13 +94,18 @@ The following table lists the pin assignments of the prototype.
 
 ## Code
 
-The code of the program consist of a number of parts combining the following activities.
+The code of the program consist of a number of parts (listed below) that are invoked to perform different activities. 
 
 - Reading temperature sensor
 - Averaging temperature values to check whether threshold exceeded
 - Handling button presses (long press or short press) through an interrupt handler
+- Setting up temperature logging
+- Starting or stopping the WLAN access point and the web server
 - Writing to SD card
 - Setting up web server with the logged data
+- Sleeping to save energy
+- Serving web pages
+
 
 The following sections show and describe the code related to the above activities.
 
@@ -133,7 +137,7 @@ def read_sensors():
     res["time"] = str(time.time())
     return res, temp
 ```
-This part of the program code shows the actual call to the function to get the temperature and store it in a dictionary, so that it can be written to the log in the Json format. 
+This part of the program code shows the actual call to the function to get the temperature and store it in a dictionary, so that it can be written to the log in the JSON format. 
 
 ```Python
 # read temperature from sensor
@@ -147,6 +151,7 @@ data["data"], temp = read_sensors()
 An array is maintained to collect the last 8 readings. These values are averaged  to check whether a threshold temperature value is exceeded. If exceeded, then the red LED must be lit until the next reset.
 
 ```Python
+
 # add to list
 average_list.append(temp)
 
@@ -155,15 +160,14 @@ if len(average_list) >= TEMP_AVG_FREQ:
 
     # compute average
     average = sum(average_list)/len(average_list)
-            
+
     # init list
     average_list = []
 
     # check threshold to light red LED and log
     if average >= TEMP_EXCEED_LIMIT:
         led_red.value(1)
-        data[('Threshold of ' + str() + ' degrees was crossed')]
-
+        data['msg'] = ('Threshold of ' + str(TEMP_EXCEED_LIMIT) + ' degrees was crossed')
 ```
 
 #### Handling button presses
@@ -183,51 +187,118 @@ def interrupt_handler(x):
 
     # count button press duration
     x = 0
-    while button.value()==0:
+    while button.value() == 0:
         time.sleep(1)
-        x = x + 1
+        x += 1
 ```
+
+#### Setup for temperature logging
 
 If the press is short (between 3 and 7 seconds), then the green LED is blinked and temperature logging is initialized by creating a new log file.
 
 ```Python
 # check if short press, then log temperature
-if 3 <= x <= 7:
+if x >= 3 and x <= 7:
 
-    # increment system state variable
-    session =+ 1
+    # start temperature logging
+    logstarted = True
+
+    # init LEDs
+    led_green.value(0)
+    led_red.value(0)
 
     # blink green
     for i in range(6):
         led_green.value(not led_green.value())
-        time.sleep(0.5)
-    led_green.value(0)
+        time.sleep(SLOW_BLINK_DURATION_SEC)
 
     # create new log file and log first temperature
-    new_fileid = new_fileid + 1
-    filename = "/sd/" + DATA_FILENAME + str(new_fileid)
+    last_fileid += 1
+    filename = '/sd/' + DATA_FILENAME + str(last_fileid)
     data = {}
-    data["id"] = esp.flash_id()
-    data["data"], temp = read_sensors()
+    data['id'] = esp.flash_id()
+    data['data'], temp = read_sensors()
     store_data(filename, data)
 ```
 
-If the is long (between 8 and 12 seconds), then the red LED is blinked and the web server is started.
+#### Setting up or brining down web server
+
+If the press is long (beyond 8), then the red LED is blinked and actions related to brining up or taking down the WLAN access point and the we server are taken. This is indicated by the state variable `webstarted`.
+
+The long press checking code is as follows.
 
 ```Python
-    # check if long press, then start web server
-    if 8 <= x <= 12:
+# check if long press, then start web server
+if x >= 8:
 
-        # blink red
-        for i in range(4):
-            led_red.value(not led_red.value())
-            time.sleep(0.5)
-        led_red.value(0)
+    # blink red
+    for i in range(6):
+        led_red.value(not led_red.value())
+        time.sleep(SLOW_BLINK_DURATION_SEC)
+    led_red.value(0)
 
-        # start web server
-        sws = SimpleWebserver()
-        sws.serve()
+    ...
 ```
+
+Once the long presee is detected, then using the `webstarted` actions for starting or stopping web server is done. If the access point and web server are not up, the code below shows how it is brought up. 
+
+```Python
+ # start or stop WLAN AP and web server
+ if not webstarted:
+
+     # say web server and AP is active now
+     webstarted = True
+
+     # bring up WLAN AP
+     ap = network.WLAN(network.AP_IF)
+     ap.active(True)
+     ap.config(password='navel2021')
+     while ap.active() == False:
+         pass
+
+     # set up web server om port 80
+     ssocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+     saddr = socket.getaddrinfo('0.0.0.0', 80)[0][-1]
+     ssocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
+     ssocket.bind(saddr)
+     ssocket.listen(5)
+     ssocket.setblocking(False)
+
+     # setup polling based connections
+     poll = select.poll()
+     poll.register(ssocket, select.POLLIN)
+     time.sleep(2)
+```
+There are 3 distinct actions to bringing up the web server.
+
+- start WLAN access point with default SSID and a password
+- setup server socket to listen and bind to the port 80
+- setup polling to detect incomming connections
+
+If the web server is up when the long button press is done, then action is taken to bring down the access point and web server.
+
+```Python
+...
+
+else:
+    # say web server and AP is not active any more
+    webstarted = False
+    if DEBUG:
+        print('stopping web server')
+
+    # unregister polling
+    poll.unregister(ssocket)
+
+    # close socket
+    ssocket.close()
+
+    # shutdown WLAN AP
+    ap = network.WLAN(network.AP_IF)
+    ap.active(False)
+```
+
+In this code, the previously described distinct actions are undone in reverse order.
+
 
 #### Writing to SD card
 
@@ -254,24 +325,99 @@ A function is used to write the temperature data to the log. This function addit
 
 The functionality related to readig, writing, formating of an SD card is available in the `lib/sdcard.py` source file.
 
-#### Setup Web Server and WLAN Access Point
+#### Sleeping to save energy
 
-The functionality related to bringing up the WLAN AP and setting up the web server is available in the `lib/webserver.py` source file.
-
-The following code will invoke the we server.
+The usage scenario requires the prototype to run on a battery. Since it is required to be operated for long times (i.e., months), it must attempt at all times to save energy. A way to save energy is to send the prototype to sleep when suitable. A suitable time is between logging temperature. But, if the WLAN access point and web server is up, then sleep should not be activated as it must be ready to serve web pages.
 
 ```Python
-    # start web server
-    sws = SimpleWebserver()
-    sws.serve()
+# set for light sleep - only if logging started but no web server active
+if logstarted and not webstarted:
+    do_lightsleep = True
+else:
+    do_lightsleep = False
+
+# check and do light sleep
+if do_lightsleep:
+    machine.lightsleep(SLEEP_INTERVAL_SEC * 1000)
+```
+In this prototype, the `machine.lightsleep()` function is used instead of a deep sleep to avoid resetting some of the hardware.
+
+#### Serving web pages
+
+Once the WLAN access point and web server are activated, the prototype must be ready to server web pages. The first activity is to see if there are pending connections.
+
+```Python
+# wait for incoming connections
+status = poll.poll(SLEEP_INTERVAL_SEC * 1000)
 ```
 
-The `serve()` function will perform the following
-- Bring up WLAN access point
-- Setup the IP stack including a DHCP server to issue IP addresses
-- Bring up the web server
-- Serve HTML pages that presents functionality to,
-  - View and download the logged temperature data in the SD card
-  - Stop the web server and the WLAN access point
+This function will return for 2 reasons: either due to a new connection request or because of a timeout. If it is a new connection is requested, then a socket is created and the web request mest be processed.
+
+```Python
+# server pages when there are connections
+if status:
+    # setup connection to requester
+    csocket, caddr = ssocket.accept()
+    csocket.setblocking(True)
+
+    # read user web request
+    csocketfile = csocket.makefile('rwb', 0)
+    
+    # split request data to identify type
+    selectfile = None
+    while True:
+        line = csocketfile.readline()
+        utf8str = line.decode('utf-8')
+        if utf8str.startswith('GET') and 'filename=' in utf8str:
+            selectfile = utf8str.split(' ')[1].split('=')[1]
+        if not line or line == b'\r\n':
+            break
+
+```
+The requests may be for the following.
+
+- First page (i.e., index page)
+- Selected JSON file
+
+The following program code shows the operation of serving pages for both requests.
+
+```Python
+# check request details decide what page to show
+if not selectfile:
+    # show index page with files
+    # get first part of index page
+    pagepart = ''
+    with open('lib/index-part-1.html', 'r') as fp:
+        pagepart = fp.read()
+    csocket.send(pagepart)
+
+    # get files part of index page
+    for name in os.listdir('/sd'):
+        pagepart = ('<option value=\"' + name + '\">' + name + '</option>\n')
+        csocket.send(pagepart)
+
+    # get last part of index page
+    with open('lib/index-part-2.html', 'r') as fp:
+        pagepart = fp.read()
+        csocket.send(pagepart)
+    
+    # wait a little
+    time.sleep(2)
+else:
+    # show contents of selected file
+    csocket.sendall('HTTP/1.0 200 OK\r\nContent-type: application/json\r\n\r\n')
+    csocket.sendall('[')
+
+    # read file contents line by line to send
+    with open('/sd/' + selectfile, 'r') as fp:
+        isfirst = True
+        for line in fp:
+            if not isfirst:
+                csocket.send(',')
+            else:
+                isfirst = False
+            csocket.sendall(line)
+    csocket.sendall(']')
+```
 
 

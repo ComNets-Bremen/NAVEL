@@ -171,9 +171,9 @@ def interrupt_handler(x):
 
     # count button press duration
     x = 0
-    while button.value()==0:
+    while button.value() == 0:
         time.sleep(1)
-        x = x + 1
+        x += 1
     
     # check if short press, then log temperature
     if x >= 3 and x <= 7:
@@ -340,7 +340,7 @@ while True:
             last_fileid += 1
             filename = '/sd/' + DATA_FILENAME + str(last_fileid)
             create_empty_file(filename)
-        
+
         # setup for next temperature logging time
         next_logtime = time.time() + SLEEP_INTERVAL_SEC
 
@@ -354,7 +354,7 @@ while True:
         if status:
             if DEBUG:
                 print('connection request on local address', saddr)
-            
+
             # setup connection to requester
             csocket, caddr = ssocket.accept()
             csocket.setblocking(True)
