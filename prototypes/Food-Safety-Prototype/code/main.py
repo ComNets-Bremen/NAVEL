@@ -64,7 +64,7 @@ FAST_BLINK_DURATION_SEC = 0.1 # duration to light LED for fast blinking
 SLOW_BLINK_DURATION_SEC = 0.5 # duration to light LED for slow blinking
 
 # storage stuff
-DATA_FILENAME = "DATA_" # set file name
+DATA_FILENAME = 'DATA_' # set file name
 DATA_MAX_FILE_SIZE = 1*1000*1000 # 1M
 
 # thresholds
@@ -74,19 +74,19 @@ TEMP_EXCEED_LIMIT = 24  # temperate threshold (degrees celcius) to indicate red 
 
 # log temperature value
 def store_data(filename, data):
-    with open(filename, "a") as outfile:
+    with open(filename, 'a') as outfile:
         if DEBUG:
-            print("Writing", filename)
-        outfile.write(json.dumps(data) + "\n")
+            print('Writing', filename)
+        outfile.write(json.dumps(data) + '\n')
         if DEBUG:
-            print("Filesize of", filename,":", outfile.tell())
+            print('Filesize of', filename,':', outfile.tell())
         return outfile.tell() < DATA_MAX_FILE_SIZE
     return True
 
 # initialize temperature logging file
 def create_empty_file(filename):
     if DEBUG:
-        print("Creating empty file", filename)
+        print('Creating empty file', filename)
     open(filename, 'a').close()
 
 # read temperature value from sensor
@@ -102,14 +102,14 @@ def read_sensors():
     res['time'] = str(time.time())
     return res, temp
 
-def read_stored_data(path="/sd/", remove = False):
+def read_stored_data(path='/sd/', remove = False):
     for f in os.listdir(path):
         if f.startswith(DATA_FILENAME):
-            print("FILE ", f)
-            with open(path+f, "r") as infile:
+            print('FILE', f)
+            with open(path+f, 'r') as infile:
                 for line in infile:
-                    print(line, end="")
-                print("")
+                    print(line, end='')
+                print('')
             if remove:
                 os.remove(path+f)
 
@@ -150,12 +150,12 @@ last_fileid = 0
 for fn in os.listdir('/sd'):
     try:
         if DEBUG:
-            print("Found file:", fn)
-        last_fileid = max(last_fileid, int(fn.split("_")[1]))
+            print('Found file:', fn)
+        last_fileid = max(last_fileid, int(fn.split('_')[1]))
     except:
         pass
 if DEBUG:
-    print("fileid", last_fileid)
+    print('fileid', last_fileid)
 
 # variable to keep track of current state
 logstarted = False
@@ -195,12 +195,12 @@ def interrupt_handler(x):
 
         # create new log file and log first temperature
         last_fileid += 1
-        filename = "/sd/" + DATA_FILENAME + str(last_fileid)
+        filename = '/sd/' + DATA_FILENAME + str(last_fileid)
         if DEBUG:
             print('new file name', filename)
         data = {}
-        data["id"] = esp.flash_id()
-        data["data"], temp = read_sensors()
+        data['id'] = esp.flash_id()
+        data['data'], temp = read_sensors()
         if DEBUG:
             print(data)
         store_data(filename, data)
@@ -225,7 +225,7 @@ def interrupt_handler(x):
             # bring up WLAN AP
             ap = network.WLAN(network.AP_IF)
             ap.active(True)
-            ap.config(password="navel2021")
+            ap.config(password='navel2021')
             while ap.active() == False:
                 pass
             if DEBUG:
@@ -289,7 +289,7 @@ while True:
     if logstarted and time.time() > next_logtime:
 
         if DEBUG:
-            print("I woke up")
+            print('I woke up')
 
         # blink green
         led_green.value(1)
@@ -333,12 +333,12 @@ while True:
             print(data)
 
         # log temperature data and check file size exceeded
-        filename = "/sd/" + DATA_FILENAME + str(last_fileid)
+        filename = '/sd/' + DATA_FILENAME + str(last_fileid)
         if not store_data(filename, data):
 
             # create new file for next log if size exceeded
             last_fileid += 1
-            filename = "/sd/" + DATA_FILENAME + str(last_fileid)
+            filename = '/sd/' + DATA_FILENAME + str(last_fileid)
             create_empty_file(filename)
         
         # setup for next temperature logging time
@@ -363,15 +363,21 @@ while True:
             csocketfile = csocket.makefile('rwb', 0)
             if DEBUG:
                 print('received:', 'from', caddr, '\n')
+            
+            # split request data to identify type
+            selectfile = None
             while True:
                 line = csocketfile.readline()
                 if DEBUG:
                     print(line)
+                utf8str = line.decode('utf-8')
+                if utf8str.startswith('GET') and 'filename=' in utf8str:
+                    selectfile = utf8str.split(' ')[1].split('=')[1]
                 if not line or line == b'\r\n':
                     break
             
             # check request details decide what page to show
-            if True:
+            if not selectfile:
                 # show index page with files
                 if DEBUG:
                     print('sending index page to', caddr, '\n')
@@ -394,6 +400,21 @@ while True:
                 
                 # wait a little
                 time.sleep(2)
+            else:
+                # show contents of selected file
+                csocket.sendall('HTTP/1.0 200 OK\r\nContent-type: application/json\r\n\r\n')
+                csocket.sendall('[')
+
+                # read file contents line by line to send
+                with open('/sd/' + selectfile, 'r') as fp:
+                    isfirst = True
+                    for line in fp:
+                        if not isfirst:
+                            csocket.send(',')
+                        else:
+                            isfirst = False
+                        csocket.sendall(line)
+                csocket.sendall(']')
 
             # end session
             csocket.close()
