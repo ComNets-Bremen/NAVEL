@@ -17,7 +17,7 @@ The picture below shows the protoype. It consist of the following components.
 
 - Temperature sensor
 - Button
-- 3 LEDs (Red, Green and Blue)
+- 3 LEDs (Red, Green and Yellow)
 
 <p align="center">
     <img src="images/prototype-top.jpg" alt="Prototype from top" width="400"/>
@@ -54,7 +54,7 @@ The prototype is based on the `Wemos D1 ESP8266` board placed together with othe
 
 The components attached to these sheilds are as follows.
 
-- 3 LEDs (red green and blue)
+- 3 LEDs (red green and yellow)
 - DS18S20 temperature sensor connected over 1-wire interface
 - Push button
 - 3.7V 2600mAh rechargeable battery
